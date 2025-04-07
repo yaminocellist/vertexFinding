@@ -1,14 +1,13 @@
 #include "../headers/globalDefinitions.h"
 
-using namespace Globals;
+using namespace rootBranchEssentials;
 // void printTreeInfo(const char* filename, const char* treeName) {
 void rootFileChecker_AI (std::string opt = "") {
     // TFile *file = TFile::Open("../External/Data_CombinedNtuple_Run54280_20241113.root");
     TFile *file = TFile::Open("../External/Sim_Ntuple_HIJING_ana443_20241102.root");
-    // TFile* file = TFile::Open(filename);
-    fileExistenceCheck(file);
+    objectExistenceCheck(file);
     TTree* tree = (TTree*)file->Get("EventTree");
-    fileExistenceCheck(tree);
+    objectExistenceCheck(tree);
 
     TObjArray* branches = tree->GetListOfBranches();
     std::string branchName;
@@ -20,6 +19,7 @@ void rootFileChecker_AI (std::string opt = "") {
         if (branchName=="event")        idx_event = i;
         if (branchName=="MBD_z_vtx")    idx_MBD_z_vtx = i;
         if (branchName=="MBD_centrality")    idx_MBD_centrality = i;
+        if (branchName=="MBD_charge_sum")    idx_MBD_charge_sum = i;
         if (branchName=="NClus")        idx_NClus = i;
         if (branchName=="ClusLayer")    idx_ClusLayer = i;
         if (branchName=="ClusX")        idx_ClusX = i;
@@ -41,8 +41,6 @@ void rootFileChecker_AI (std::string opt = "") {
         }
     }
     if (opt == "size") {
-        // std::cout << idx_event << "," << idx_MBD_z_vtx << "," << idx_NClus << ","
-        //           << idx_ClusLayer << std::endl;
         TBranch *b_event     = (TBranch*)tree->GetListOfBranches()->At(idx_event);
         TBranch *b_MBD_z_vtx = (TBranch*)tree->GetListOfBranches()->At(idx_MBD_z_vtx);
         TBranch *b_MBD_centrality = (TBranch*)tree->GetListOfBranches()->At(idx_MBD_centrality);
@@ -65,6 +63,7 @@ void rootFileChecker_AI (std::string opt = "") {
         b_ClusR    ->SetAddress(&ClusR);
         b_ClusPhi  ->SetAddress(&ClusPhi);
         b_ClusEta  ->SetAddress(&ClusEta);
+        // ***********************************************
         Long64_t nEntries = tree->GetEntries();
         for (Long64_t i = 0; i < nEntries; ++i) {
             b_event->GetEntry(i);
@@ -109,7 +108,7 @@ void rootFileChecker_AI (std::string opt = "") {
         b_ClusPhi  ->SetAddress(&ClusPhi);
         b_ClusEta  ->SetAddress(&ClusEta);
         Long64_t nEntries = tree->GetEntries();
-        TH1D *h = new TH1D("","", 100, -M_PI, M_PI);
+        TH1D *h = new TH1D("phi sanity checker",";calculated_phi - ClusPhi;# of counts", 100, -M_PI, M_PI);
         double phi;
         for (Long64_t i = 0; i < nEntries; ++i) {
             b_event->GetEntry(i);
@@ -154,7 +153,7 @@ void rootFileChecker_AI (std::string opt = "") {
         b_ClusPhi  ->SetAddress(&ClusPhi);
         b_ClusEta  ->SetAddress(&ClusEta);
         Long64_t nEntries = tree->GetEntries();
-        TH1D *h = new TH1D("etacheck",";deta;#", 100, -2*M_PI, 2*M_PI);
+        TH1D *h = new TH1D("eta sanity check",";calculated_eta - ClusEta;#", 100, -2*M_PI, 2*M_PI);
         double R, z_vtx, dZ, theta_half, eta;
         for (Long64_t i = 0; i < nEntries; ++i) {
             b_event->GetEntry(i);
@@ -182,8 +181,8 @@ void rootFileChecker_AI (std::string opt = "") {
         h->Draw();
     }
     if (opt == "list") {
-        std::string filePath = "./zFindingResults/dummy.txt";
-        std::ofstream outputFile(filePath, std::ios_base::app);
+        std::string filePath = "./zFindingResults/dummyForFit_simulated_data.txt";
+        std::ofstream outputFile(filePath);
         if (!outputFile.is_open()) {
             std::cout << "Unable to open the file to be written." << std::endl;
             system("read -n 1 -s -p \"Press any key to continue...\" echo");
@@ -196,11 +195,12 @@ void rootFileChecker_AI (std::string opt = "") {
             exit(1);
         }
         bool isEmpty = (checkFile.tellg() == 0);
-        if(isEmpty) outputFile << "index,event,NClus,foundZ,trueZ,centrality" << std::endl;
+        if(isEmpty) outputFile << "index,event,NClus,foundZ,trueZ,centrality,chargeSum" << std::endl;
 
         TBranch *b_event     = (TBranch*)tree->GetListOfBranches()->At(idx_event);
         TBranch *b_MBD_z_vtx = (TBranch*)tree->GetListOfBranches()->At(idx_MBD_z_vtx);
         TBranch *b_MBD_centrality = (TBranch*)tree->GetListOfBranches()->At(idx_MBD_centrality);
+        b_MBD_charge_sum = static_cast<TBranch*>(tree->GetListOfBranches()->At(idx_MBD_charge_sum));
         TBranch *b_NClus     = (TBranch*)tree->GetListOfBranches()->At(idx_NClus);
         TBranch *b_ClusLayer = (TBranch*)tree->GetListOfBranches()->At(idx_ClusLayer);
         TBranch *b_ClusX     = (TBranch*)tree->GetListOfBranches()->At(idx_ClusX);
@@ -212,6 +212,7 @@ void rootFileChecker_AI (std::string opt = "") {
         b_event    ->SetAddress(&event);
         b_MBD_z_vtx->SetAddress(&MBD_z_vtx);
         b_MBD_centrality->SetAddress(&MBD_centrality);
+        b_MBD_charge_sum->SetAddress(&MBD_charge_sum);
         b_NClus    ->SetAddress(&NClus);
         b_ClusLayer->SetAddress(&ClusLayer);
         b_ClusX    ->SetAddress(&ClusX);
@@ -221,12 +222,12 @@ void rootFileChecker_AI (std::string opt = "") {
         b_ClusPhi  ->SetAddress(&ClusPhi);
         b_ClusEta  ->SetAddress(&ClusEta);
         Long64_t nEntries = tree->GetEntries();
-        TH1D *h = new TH1D("etacheck",";deta;#", 100, -2*M_PI, 2*M_PI);
         double R, z_vtx, dZ, theta_half, eta;
         for (Long64_t i = 0; i < nEntries; ++i) {
             b_event->GetEntry(i);
             b_MBD_z_vtx->GetEntry(i);
             b_MBD_centrality->GetEntry(i);
+            b_MBD_charge_sum->GetEntry(i);
             b_NClus->GetEntry(i);
             b_ClusLayer->GetEntry(i);
             b_ClusX->GetEntry(i);
@@ -235,8 +236,9 @@ void rootFileChecker_AI (std::string opt = "") {
             b_ClusR->GetEntry(i);
             b_ClusPhi->GetEntry(i);
             b_ClusEta->GetEntry(i);
-            if (std::abs(MBD_z_vtx)<30 && MBD_centrality <= 0.70) 
-                outputFile << i << "," << event << "," << NClus << "," << std::nan("") << "," << MBD_z_vtx << "," << MBD_centrality << std::endl;
+            // if (std::abs(MBD_z_vtx)<2 && NClus >= 100) 
+            if (MBD_z_vtx > -40 && MBD_z_vtx < 30)
+                outputFile << i << "," << event << "," << NClus << "," << std::nan("") << "," << MBD_z_vtx << "," << MBD_centrality << "," << MBD_charge_sum << std::endl;
         }
     }
 

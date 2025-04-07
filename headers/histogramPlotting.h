@@ -4,7 +4,7 @@
 #include "TStyle.h"
 
 void angularPlot1D (TH1D* const histo, std::vector<std::string> method, const std::string &fileTitle) {
-    std::cout << histo->GetXaxis()->GetXmin() << std::endl;
+    histo->SetTitle(fileTitle.c_str());
     int maxBin = histo->GetMaximumBin();
     double maxBinCenter = histo->GetBinCenter(maxBin);
     int maxEntry = histo -> GetBinContent(maxBin);
@@ -475,6 +475,7 @@ void backgroundCancelling (TH1D* const hBackground, TH1D* const hSignal, std::ve
 
 void backgroundCancelling_dPhi (TH1D* const hBackground, TH1D* const hSignal, std::vector<std::string> method, Int_t const & target) {
     double pi = TMath::Pi();
+    double signalRatio;
     int bin_min  = 1;                     // The first bin;
     int bin_max  = hSignal->GetNbinsX();  // The last bin;
     // Calculate bin positions for each label
@@ -502,7 +503,6 @@ void backgroundCancelling_dPhi (TH1D* const hBackground, TH1D* const hSignal, st
     hSignal->GetXaxis()->LabelsOption("h");
     
     std::vector<std::string> options = splitString(method[0], '_');
-    // TCanvas *can1 = new TCanvas("csub","csub",0,50,1920,1056);
     TCanvas *can1 = new TCanvas("csub","csub",0,50,2560,1440);
     can1 -> Divide(1, 2);
     can1 -> cd(1);
@@ -516,16 +516,11 @@ void backgroundCancelling_dPhi (TH1D* const hBackground, TH1D* const hSignal, st
         current_binContent = hBackground->GetBinContent(bin);
         if (max_mixed < current_binContent)     max_mixed = current_binContent;
     }
-    double signalRatio = max_mixed/max_unmixed;
     std::cout << (hBackground->Integral(hBackground->FindFixBin(phi_range_low),hBackground->FindFixBin(phi_range_high),""))/(hSignal->Integral(hSignal->FindFixBin(phi_range_low),hSignal->FindFixBin(phi_range_high),"")) << std::endl;
     std::cout << (hBackground->Integral(hBackground->FindFixBin(phi_range_low),hBackground->FindFixBin(phi_range_high),"")+hBackground->Integral(hBackground->FindFixBin(phi_range_low2),hBackground->FindFixBin(phi_range_high2),""))/(hSignal->Integral(hSignal->FindFixBin(phi_range_low),hSignal->FindFixBin(phi_range_high),"")+hSignal->Integral(hSignal->FindFixBin(phi_range_low2),hSignal->FindFixBin(phi_range_high2),"")) << std::endl;
     std::cout << (hBackground->Integral(hBackground->FindFixBin(-M_PI),hBackground->FindFixBin(phi_range_high),"")+hBackground->Integral(hBackground->FindFixBin(phi_range_low2),hBackground->FindFixBin(M_PI),""))/(hSignal->Integral(hSignal->FindFixBin(-M_PI),hSignal->FindFixBin(phi_range_high),"")+hSignal->Integral(hSignal->FindFixBin(phi_range_low2),hSignal->FindFixBin(M_PI),"")) << std::endl;
     signalRatio = (hBackground->Integral(hBackground->FindFixBin(-M_PI),hBackground->FindFixBin(phi_range_high),"")+hBackground->Integral(hBackground->FindFixBin(phi_range_low2),hBackground->FindFixBin(M_PI),""))/(hSignal->Integral(hSignal->FindFixBin(-M_PI),hSignal->FindFixBin(phi_range_high),"")+hSignal->Integral(hSignal->FindFixBin(phi_range_low2),hSignal->FindFixBin(M_PI),""));
     hSignal -> Add(hSignal, signalRatio - 1);
-    printBlue(max_mixed/max_unmixed); 
-    printWhite("FindBin and FindFixBin:");
-    printRed(hBackground->FindBin(phi_range_low2));
-    printRed(hBackground->FindFixBin(phi_range_low2));
 
     // Loop again for y-axis plotting range:
     phi_range_low = -M_PI;
@@ -551,10 +546,6 @@ void backgroundCancelling_dPhi (TH1D* const hBackground, TH1D* const hSignal, st
     hSignal -> Draw("SAME");
     hSignal -> GetXaxis()->SetLabelSize(0.06);
     hSignal -> GetXaxis()->SetTitleSize(0.05);
-    if (options[1] == "wdE")
-        hSignal -> SetTitle(Form("%d events with |dEta| < %.2f, %2.2fcm < z vtx < %2.2fcm, %1.2f < centrality < %1.2f", target, dEta_cut, std::stod(method[4]), std::stod(method[5]), std::stod(method[2]), std::stod(method[3])));
-    else if (options[1] == "wE")
-        hSignal -> SetTitle(Form("%d events with |Eta| < %.2f,  %2.2fcm < z vtx < %2.2fcm, %1.2f < centrality < %1.2f", target, Eta_range, std::stod(method[4]), std::stod(method[5]), std::stod(method[2]), std::stod(method[3])));
     hSignal -> GetXaxis() -> CenterTitle(true);
     hSignal -> GetXaxis() -> SetTitleOffset(.9);
     hSignal -> GetYaxis() -> CenterTitle(true);
@@ -563,12 +554,28 @@ void backgroundCancelling_dPhi (TH1D* const hBackground, TH1D* const hSignal, st
     hBackground -> SetLineColor(2);
     hBackground -> GetXaxis() -> CenterTitle(true);
     hBackground -> GetYaxis() -> CenterTitle(true);
+    if (options[1] == "dE") {
+        hSignal -> SetTitle(Form("%d events with |dEta| < %.2f, %2.2fcm < z vtx < %2.2fcm, %1.2f < centrality < %1.2f", target, dEta_cut, std::stod(method[4]), std::stod(method[5]), std::stod(method[2]), std::stod(method[3])));
+        hBackground -> SetTitle(Form("%d events with |dEta| < %.2f, %2.2fcm < z vtx < %2.2fcm, %1.2f < centrality < %1.2f", target, dEta_cut, std::stod(method[4]), std::stod(method[5]), std::stod(method[2]), std::stod(method[3])));
+    }
+    else if (options[1] == "E") {
+        hSignal -> SetTitle(Form("%d events with |Eta| < %.2f,  %2.2fcm < z vtx < %2.2fcm, %1.2f < centrality < %1.2f", target, Eta_range, std::stod(method[4]), std::stod(method[5]), std::stod(method[2]), std::stod(method[3])));
+        hBackground -> SetTitle(Form("%d events with |Eta| < %.2f,  %2.2fcm < z vtx < %2.2fcm, %1.2f < centrality < %1.2f", target, Eta_range, std::stod(method[4]), std::stod(method[5]), std::stod(method[2]), std::stod(method[3])));
+    }
 
     TLegend *lg = new TLegend(0.12, 0.8, 0.35, 0.9);
     lg -> AddEntry(hSignal, "Unmixed Events' dPhi", "l");
     lg -> AddEntry(hBackground, Form("Mixed Events' dPhi, multiplied by %.2f", signalRatio), "l");
     gStyle -> SetLegendTextSize(.043);
     lg->Draw("same");
+    if (options[3] == "s") {
+        // Assuming you have a canvas already created and the plots are drawn
+        TLatex text2;
+        text2.SetTextSize(0.1); // Adjust the size as needed
+        text2.SetTextColor(kRed); // Set color to red
+        text2.SetTextAlign(22);   // Center the text
+        text2.DrawLatex(halfPI, max_y_range, "Simulated Data"); // Adjust the coordinates (x, y) to place the text appropriately
+    }
 
     // TLine *l2 = new TLine(phi_range_low2, 0, phi_range_low2, max_y_range);
 	// l2 -> Draw("same"); 
@@ -629,25 +636,47 @@ void backgroundCancelling_dPhi (TH1D* const hBackground, TH1D* const hSignal, st
 
     std::string filePrefix;
     if (options[1] == "wo") {
-        hDiff -> SetTitle(Form("Subtracted Signal for %d Events", target));
+        hDiff -> SetTitle(Form("Subtracted Signal for %d Events, %.2f < centrality < %.2f", target, method2, method3));
         filePrefix = Form("%devents_%2.2f_%2.2f_%1.2f_%1.2f", eventCount, method4, method5, method2, method3);
-    } else if (options[1] == "wdE") {
-        hDiff -> SetTitle(Form("Subtracted Signal for %d Events, with |dEta| < %.2f", target, dEta_cut));
+    } else if (options[1] == "dE") {
+        hDiff -> SetTitle(Form("Subtracted Signal for %d Events, with |dEta| < %.2f, %.2f < centrality < %.2f", target, dEta_cut, method2, method3));
         filePrefix = Form("with_dEta_cut_%.2f_%devents_%2.2f_%2.2f_%1.2f_%1.2f", dEta_cut, eventCount, method4, method5, method2, method3);
     } else {
-        hDiff -> SetTitle(Form("Subtracted Signal for %d Events, with |Eta| < %.2f", target, Eta_range));
+        hDiff -> SetTitle(Form("Subtracted Signal for %d Events, with |Eta| < %.2f, %.2f < centrality < %.2f", target, Eta_range, method2, method3));
         filePrefix = Form("with_Eta_range_%.2f_%devents_%2.2f_%2.2f_%1.2f_%1.2f", Eta_range, eventCount, method4, method5, method2, method3);
     }
-
-    can1->SaveAs(("../../External/zFindingPlots/dPhi_mixedsubtract_" + filePrefix + ".png").c_str());
+    if (options[3] == "s") {
+        // Loop again for y-axis plotting range:
+        bin_range_low = hDiff->FindBin(-M_PI);
+        bin_range_high = hDiff->FindBin(M_PI);
+        double max_content = -1;
+        for (int bin = bin_range_low; bin <= bin_range_high; bin++) {
+            current_binContent = hDiff->GetBinContent(bin);
+            if (max_content < current_binContent)   max_content = current_binContent;
+        }
+        // Assuming you have a canvas already created and the plots are drawn
+        TLatex text;
+        text.SetTextSize(0.1); // Adjust the size as needed
+        text.SetTextColor(kRed); // Set color to red
+        text.SetTextAlign(22);   // Center the text
+        text.DrawLatex(halfPI, max_content/2, "Simulated Data"); // Adjust the coordinates (x, y) to place the text appropriately
+        can1->SaveAs(("../../External/zFindingPlots/Simulation_data_dPhi_mixedsubtract_" + filePrefix + ".png").c_str());
+    }
+    else {
+        can1->SaveAs(("../../External/zFindingPlots/dPhi_mixedsubtract_" + filePrefix + ".png").c_str());
+    }
 
     if (options[2] == "f") {
+        std::string rootFileName;
         TParameter<double>* ratioParam = new TParameter<double>("signal_multiplied_ratio", signalRatio);
         TParameter<double>* numParam   = new TParameter<double>("number_of_events", target);
         TParameter<double>* lCenParam  = new TParameter<double>("lower_centrality", method2);
         TParameter<double>* hCenParam  = new TParameter<double>("higher_centrality", method3);
         TParameter<double>* EtaParam   = new TParameter<double>("eta_range", Eta_range);
-        std::string rootFileName = "../../External/zFindingPlots/hDiff_" + filePrefix + ".root";
+        if (options[3] == "s")
+            rootFileName = "../../External/forFit/Simulation_data_hDiff_" + filePrefix + ".root";
+        else
+            rootFileName = "../../External/forFit/hDiff_" + filePrefix + ".root";
         TFile *outputFile = new TFile(rootFileName.c_str(), "RECREATE");
         hDiff     ->Write();
         ratioParam->Write();
@@ -682,9 +711,7 @@ void backgroundCancelling_dPhi (TH1D* const hBackground, TH1D* const hSignal, st
     //         hDiff->Write();
     //         outputFile->Close();
     //     }
-    // }
-
-        
+    // }        
 }
 
 void ArrayPlot1D_Logy (const std::vector<TH1D*>& h, std::vector<std::string> method, const std::string &fileTitle) {
@@ -1193,16 +1220,16 @@ void Npart () {
     graph_0052->GetYaxis()->CenterTitle(true);     // Center the x-axis title
 
     auto graph_020 = new TGraph();
-    graph_020->AddPoint(353, 1057.54/353);   // 0-3
-    graph_020->AddPoint(329, 1115.79/329);   // 3-6
-    graph_020->AddPoint(291, 1152.22/291);   // 6-10
-    graph_020->AddPoint(252, 1036.31/252);   // 10-15
-    graph_020->AddPoint(215, 849.616/215);   // 15-20
-    graph_020->AddPoint(180, 722.125/180);   // 20-25
-    graph_020->AddPoint(149, 586.997/149);   // 25-30
-    graph_020->AddPoint(122, 495.049/122);   // 30-35
-    graph_020->AddPoint(102, 388.681/102);   // 35-40
-    graph_020->AddPoint(83, 304.816/83);     // 40-45
+    graph_020->AddPoint(353, 1385.11/353);   // 0-3
+    graph_020->AddPoint(329, 1255.29/329);   // 3-6
+    graph_020->AddPoint(291, 1078.82/291);   // 6-10
+    graph_020->AddPoint(252, 927.49/252);   // 10-15
+    graph_020->AddPoint(215, 805.64/215);   // 15-20
+    graph_020->AddPoint(180, 654.26/180);   // 20-25
+    graph_020->AddPoint(149, 557.81/149);   // 25-30
+    graph_020->AddPoint(122, 452.34/122);   // 30-35
+    graph_020->AddPoint(102, 367.35/102);   // 35-40
+    graph_020->AddPoint(83, 278.72/83);     // 40-45
     // printCsvData(data);
 
     // graph_020->SetTitle("Hahahaha");
@@ -1223,7 +1250,7 @@ void Npart () {
     graph_0052->SetTitle("Pseudorapidity Density as a function of Npart");
     graph_020->Draw("");
     graph_paper->Draw("LP same");
-    graph_0052->Draw("LP same");
+    // graph_0052->Draw("LP same");
 
     // Create and customize the legend
     auto legend = new TLegend(0.72, 0.75, 0.88, 0.89); // Adjust coordinates as needed
@@ -1238,4 +1265,47 @@ void Npart () {
 
     // Save the canvas with both profiles
     c1->SaveAs("../External/zFindingPlots/Pseudo_Npart.png");
+}
+
+// For showing DCA zFinding results:
+void TSpectrumOutcomes (
+    TH1D *const h,
+    TH1  *const bg,
+    const int &idx,
+    const int &NClus,
+    const double &foundZ,
+    const double &MBD_z_vtx
+) {
+    TCanvas *c = new TCanvas("c", "c", 0,50,2000,1000); // It's a must!
+    if (gPad) gPad->SetGrid(1, 1);
+    // h -> DrawCopy("");
+    c -> Update();
+    h -> GetXaxis() -> CenterTitle(true);   h -> GetYaxis() -> CenterTitle(true);
+    h -> SetTitle(Form("Found Z of Event #%d, NHits = %d, #bf{DCA with fit};z position [cm];# of counts", idx, NClus));
+    h -> Draw("same");
+    bg -> Draw("SAME");
+    h -> SetFillColor(kYellow - 7);
+    h -> SetLineWidth(1);
+    h -> SetFillStyle(1001);
+    static TLine *l1 = new TLine();
+    l1 -> SetLineColor(kRed);
+    l1 -> SetLineStyle(2);
+    l1 -> SetLineWidth(4);
+    static TLine *l2 = new TLine();
+    l2 -> SetLineColor(kBlue);
+    l2 -> SetLineStyle(1);
+    l2 -> SetLineWidth(4);
+    int max_entry = h -> GetBinContent(h -> FindBin(foundZ));
+    // Update line positions and redraw
+    l1->SetX1(foundZ); l1->SetX2(foundZ);
+    l1->SetY1(0);   l1->SetY2(max_entry);
+    l1->Draw("same");
+    l2->SetX1(MBD_z_vtx); l2->SetX2(MBD_z_vtx);
+    l2->SetY1(0);     l2->SetY2(max_entry);
+    l2->Draw("same");
+    static TLegend *lg = new TLegend(0.12, 0.85, 0.46, 0.9);
+    lg -> AddEntry(h, Form("found z = %.4fcm, true z = %.4fcm", foundZ, MBD_z_vtx), "f");
+    lg -> SetTextSize(.028);
+    lg->Draw("same");
+    gPad -> SetGrid(1,1); gPad -> Update();                 // It's a must;
 }

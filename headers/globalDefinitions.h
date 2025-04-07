@@ -8,6 +8,7 @@
 #include <fstream>
 #include <functional>
 #include <chrono>
+#include <filesystem>
 
 #include <TH1.h>
 #include <TH2F.h>
@@ -16,17 +17,19 @@
 #include <TGraph.h>
 #include <TPolyMarker.h>
 #include <TAxis.h>
+#include <TLatex.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TMultiGraph.h>
 #include <TProfile.h>
 #include <TParameter.h>
+#include "ROOT/TSeq.hxx"
 
 /*********************************************************************
  *                      GLOBAL VARIABLES;
  * ******************************************************************/
 double zmin = -45;
-double zmax = 5;        // From sPHENIX paper, the stave's length is aroung 27.12 cm;
+double zmax = 35;        // From sPHENIX paper, the stave's length is aroung 27.12 cm;
 double scanstep = 0.2;  // unit: cm; 
 int bins = (zmax - zmin)/scanstep + 1;
 const double dPhi_cut  = 0.01;
@@ -38,7 +41,8 @@ double DCA_cut        = 0.2;    // unit: cm;
 double DCA_cutSQUARED = 0.04;   // unit: cm;
 double MBD_lower = 0., MBD_upper = 10.;
 double abs_fit_range = M_PI/60;
-// double abs_fit_range = 0.2;
+const UInt_t nThreads = 8U;
+// double abs_fit_range = 0.05;
 
  // ANSI escape code for red text
 const std::string COLOR_GREEN="\033[0;32m";
@@ -93,9 +97,9 @@ struct EtaWithPhi {
     EtaWithPhi(double e, double p) : eta_value(e), phi_value(p) {}
 };
 
-namespace Globals {
+namespace rootBranchEssentials {
     inline int event, NClus;
-    inline float MBD_z_vtx, MBD_centrality;
+    inline float MBD_z_vtx, MBD_centrality, MBD_charge_sum;
     inline std::vector<int>   *ClusLayer = nullptr;
     inline std::vector<float> *ClusX    = nullptr;
     inline std::vector<float> *ClusY    = nullptr;
@@ -103,6 +107,11 @@ namespace Globals {
     inline std::vector<float> *ClusR    = nullptr;
     inline std::vector<float> *ClusPhi  = nullptr;
     inline std::vector<float> *ClusEta  = nullptr;
+
+    inline int idx_event, idx_MBD_z_vtx, idx_MBD_centrality, idx_MBD_charge_sum, idx_NClus, idx_ClusLayer,
+               idx_ClusX, idx_ClusY, idx_ClusZ, idx_ClusR, idx_ClusPhi, idx_ClusEta;
+
+    inline TBranch *b_event, *b_MBD_z_vtx, *b_MBD_centrality, *b_MBD_charge_sum, *b_NClus, *b_ClusLayer, *b_ClusX, *b_ClusY, *b_ClusZ, *b_ClusR, *b_ClusPhi, *b_ClusEta;
 }
 
 bool isInteger(const std::string& s) {
@@ -260,8 +269,18 @@ std::vector<std::string> findRootFiles (const std::string &directory, const std:
 }
 
 template <typename T>
-void printRed(const T &content) {
-    std::cout << COLOR_RED << content << COLOR_RESET << std::endl;
+void printRedSingle(const T &content) {
+    std::cout << COLOR_RED << content << COLOR_RESET;
+}
+template <typename First, typename... Rest>
+void printRed(const First& first, const Rest&... rest){
+    printRedSingle(first);
+    if constexpr (sizeof...(rest) > 0) {
+        printRedSingle("");
+        printRed(rest...);
+    }
+    else
+        std::cout << std::endl;
 }
 
 template <typename T>
@@ -270,18 +289,37 @@ void printWhite(const T &content) {
 }
 
 template <typename T>
-void printBlue(const T &content) {
-    std::cout << COLOR_BLUE << content << COLOR_RESET << std::endl;
+void printBlueSingle(const T &content) {
+    std::cout << COLOR_BLUE << content << COLOR_RESET;
+}
+template <typename First, typename... Rest>
+void printBlue(const First& first, const Rest&... rest){
+    printBlueSingle(first);
+    if constexpr (sizeof...(rest) > 0) {
+        printBlueSingle("");
+        printBlue(rest...);
+    }
+    else
+        std::cout << std::endl;
 }
 
 void printSeparation () {
-    printBlue("=================================================================================================================");
+    printWhite("=================================================================================================================");
 }
 
 template <typename T>
 void fileExistenceCheck (const T &file) {
+    if (!file.is_open()){
+		std::cout << "Unable to open linelabel" << std::endl;
+		system("read -n 1 -s -p \"Press any key to continue...\" echo");
+		exit(1);
+ 	}
+}
+
+template <typename T>
+void objectExistenceCheck (const T &file) {
     if (!file) {
-        std::cerr << "Error: Could not open/find the file " << std::endl;
+        std::cerr << "Error: Could not open/find the object " << std::endl;
         exit(1);
     }
 }

@@ -1,7 +1,7 @@
 #include <iomanip>
 #include "globalDefinitions.h"
-
-
+#include <TSpectrum.h>
+#include <TLatex.h>
 
 // #define __PEAKS_C_FIT_AREAS__ 1 /* fit peaks' areas */
 
@@ -14,7 +14,7 @@ Double_t fpeaks(Double_t *x, Double_t *par) {
       Double_t sigma = par[3*p+4];
       
       #if defined(__PEAKS_C_FIT_AREAS__)
-         norm /= sigma * (TMath::Sqrt(TMath::TwoPi())); // "area"
+        norm /= sigma * (TMath::Sqrt(TMath::TwoPi())); // "area"
       #endif /* defined(__PEAKS_C_FIT_AREAS__) */
       
       result += norm*TMath::Gaus(x[0],mean,sigma);
@@ -22,7 +22,8 @@ Double_t fpeaks(Double_t *x, Double_t *par) {
    return result;
 }
 
-// This is the original DCA (Distance of the Closest Approach) method:
+// Original DCA (Distance of the Closest Approach) method:
+// The histogram is processed directly after Fill, without filtering its background;
 double nearest_z_method (const int &evt, const std::vector<myTrackletMemberLite> &t0, const std::vector<myTrackletMemberLite> &t1,
                          const double &eta_cut_low, const double &eta_cut_high,
                          const double &phi_cut_low, const double &phi_cut_high, const double &trueZ) {
@@ -118,7 +119,7 @@ double nearest_z_method (const int &evt, const std::vector<myTrackletMemberLite>
     return ctz;
 }
 
-//  DCA (Distance of Closest Approach) integrating npeaks.C tutorial:
+//  DCA (Distance of Closest Approach), integrating npeaks.C tutorial:
 double DCA_npeaks_fitLite (const int &evt, const std::vector<myTrackletMemberLite> &t0, const std::vector<myTrackletMemberLite> &t1,
                          const double &eta_cut_low, const double &eta_cut_high,
                          const double &phi_cut_low, const double &phi_cut_high, const double &trueZ) {

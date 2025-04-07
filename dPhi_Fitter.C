@@ -128,7 +128,7 @@ void single_fit_v2 (
     printRed(higherCen);
     printRed(etaRange);
     TH1D *hDiff = (TH1D*)inputFile->Get("Background Subtracted Signal");
-    fileExistenceCheck(hDiff);
+    objectExistenceCheck(hDiff);
     // if (!hDiff) {
     //     std::cerr << "Error: Cannot find the target histogram!" << std::endl;
     //     inputFile->Close();
@@ -262,7 +262,7 @@ void single_fit_v23 (
     std::string rootFilePath = rootFilePaths[target];
     printBlue(rootFilePath);
     TFile *inputFile = new TFile(rootFilePath.c_str(), "READ");
-    fileExistenceCheck(inputFile);
+    objectExistenceCheck(inputFile);
     TParameter<double>* ratioParam = (TParameter<double>*) inputFile->Get("signal_multiplied_ratio");
     TParameter<double>* numParam   = (TParameter<double>*) inputFile->Get("number_of_events");
     TParameter<double>* lCenParam  = (TParameter<double>*) inputFile->Get("lower_centrality");
@@ -279,7 +279,7 @@ void single_fit_v23 (
     printRed(higherCen);
     printRed(etaRange);
     TH1D *hDiff = (TH1D*)inputFile->Get("Background Subtracted Signal");
-    fileExistenceCheck(hDiff);
+    objectExistenceCheck(hDiff);
 
     // int numberOfEvents = std::stoi((splitString(hDiff->GetTitle(), ' '))[3]);
     double left_subrange_min = hDiff->GetXaxis()->GetXmin();
@@ -301,7 +301,7 @@ void single_fit_v23 (
     double min_rst = std::numeric_limits<double>::max();
     double par1 = 0., par2 = 0, par3 = -0.;
     double start_p1 = par1, start_p2 = par2, start_p3 = par3;
-    double end_p1 = 31., end_p2 = 15., end_p3 = 50.;
+    double end_p1 = 60., end_p2 = 50., end_p3 = 50.;
 
     std::function<double(const TH1D *const, const double &, const double &, const double &, const double &, const double &)> myFitFunction;
     // if (option == "TLS")    myFitFunction = TotalLeastSquare;
@@ -346,7 +346,7 @@ void single_fit_v23 (
     legend->AddEntry(component_v3, Form("V3 component, fit range ~ [%.2f, %.2f]",left_subrange_max, right_subrange_min), "l");
     legend->Draw();
     // away_side_l -> Draw("same");    away_side_r -> Draw("same");
-    double max_bin_content = (hDiff->GetBinContent(hDiff->FindFixBin(0.)))/50;
+    double max_bin_content = (hDiff->GetBinContent(hDiff->FindFixBin(0.)))/45;
     hDiff->GetYaxis()->SetRangeUser(-max_bin_content, max_bin_content*2);
     component_v2 -> SetLineColor(kGreen - 7);
     component_v2 -> SetLineWidth(10);
@@ -361,9 +361,9 @@ void single_fit_v23 (
     can -> cd(2);
     int nBins = hDiff->GetNbinsX();
 
-    std::vector<std::string> cutInfos = splitString(rootFilePath, '_');
-    std::string cenRange1 = cutInfos[3];
-    std::string cenRange2 = cutInfos[4].substr(0, cutInfos[4].length()-5);
+    // std::vector<std::string> cutInfos = splitString(rootFilePath, '_');
+    // std::string cenRange1 = cutInfos[3];
+    // std::string cenRange2 = cutInfos[4].substr(0, cutInfos[4].length()-5);
     TH1D *hFiltered = new TH1D("hFiltered", Form("Filtered Histogram of %.2f < Centrality < %.2f;dPhi value;# of count", lowerCen, higherCen), nBins, hDiff->GetXaxis()->GetXmin(), hDiff->GetXaxis()->GetXmax());
     TF1 *away_side = new TF1("triangular flow", "[0]*[0]*cos(2*x)+[1]*[1]*cos(3*x)+[2]", hDiff->GetXaxis()->GetXmin(), hDiff->GetXaxis()->GetXmax());
     away_side->SetParameters(par1, par2, par3);
@@ -401,6 +401,21 @@ void single_fit_v23 (
     legend2->AddEntry(hFiltered, Form("Multiplicity Density: %.2f", Multiplicity), "f");
     legend2->AddEntry(hFiltered, Form("Signal/Background Ratio: %.2f",SNR), "l");
     legend2->Draw("same");
+
+    // if () {
+        double bin_range_low = hFiltered->FindBin(-M_PI);
+        double bin_range_high = hFiltered->FindBin(M_PI);
+        double max_content = -1;
+        for (int bin = bin_range_low; bin <= bin_range_high; bin++) {
+            double current_binContent = hFiltered->GetBinContent(bin);
+            if (max_content < current_binContent)   max_content = current_binContent;
+        }
+        TLatex text;
+        text.SetTextSize(0.1); // Adjust the size as needed
+        text.SetTextColor(kRed); // Set color to red
+        text.SetTextAlign(22);   // Center the text
+        text.DrawLatex(halfPI, max_content/2, "Simulated Data");
+    // }
 
     // Show the plot
     can->Update();
@@ -592,8 +607,8 @@ void fit_the_hist_ver2 (TH1D *hDiff, TCanvas *can) {
 void dPhi_Fitter(std::string opt = "") {
     TStopwatch timer;   timer.Start();
 
-    std::string dirPath = "../External/zFindingPlots";  // The directory containing the files
-    std::string filePrefix = "hDiff_with_Eta_range_1.00_500events_-2";  // Prefix of the file you are looking for
+    std::string dirPath = "../External/forFit";  // The directory containing the files
+    std::string filePrefix = "Simulation_data_hDiff_with_Eta_range_1.00_500events";  // Prefix of the file you are looking for
     std::vector<std::string> rootFilePaths = findRootFiles(dirPath, filePrefix);
     if (rootFilePaths.empty()) {
         std::cerr << "Error: Cannot find any .root files with the prefix hDiff_.." << filePrefix << "!" << std::endl;

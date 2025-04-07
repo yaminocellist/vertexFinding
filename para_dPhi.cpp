@@ -14,7 +14,7 @@
 #include <mutex>
 #include <chrono>
 
-using namespace Globals;
+using namespace rootBranchEssentials;
 
 TH1 *h[100];
 TH1D *h_ZonOne[20];
@@ -508,7 +508,6 @@ int main(int argc, char* argv[]) {
     TApplication theApp("App", &argc, argv);
     std::vector<std::string> method;
     // <METHOD> <TARGET> <CEN_LOW> <CEN_HIGH> <Z_LOW> <Z_HIGH>
-    std::string func = "NIL";
     int target       = 100;
     double cen_low   = 0.0;
     double cen_high  = 0.7;
@@ -576,7 +575,6 @@ int main(int argc, char* argv[]) {
                 foundZ.push_back(f);    MBD_true_z.push_back(Mz);   MBD_cen.push_back(Mc);
             // }
         }
-        
     }
     Long64_t nEntries = EventTree -> GetEntries();
     // int event25, NClus;
@@ -609,8 +607,8 @@ int main(int argc, char* argv[]) {
     }
     TBranch *b_event     = (TBranch*)EventTree->GetListOfBranches()->At(idx_event);
     TBranch *b_MBD_z_vtx = (TBranch*)EventTree->GetListOfBranches()->At(idx_MBD_z_vtx);
-        TBranch *b_MBD_centrality = (TBranch*)EventTree->GetListOfBranches()->At(idx_MBD_centrality);
-        TBranch *b_NClus     = (TBranch*)EventTree->GetListOfBranches()->At(idx_NClus);
+    TBranch *b_MBD_centrality = (TBranch*)EventTree->GetListOfBranches()->At(idx_MBD_centrality);
+    TBranch *b_NClus     = (TBranch*)EventTree->GetListOfBranches()->At(idx_NClus);
         TBranch *b_ClusLayer = (TBranch*)EventTree->GetListOfBranches()->At(idx_ClusLayer);
         TBranch *b_ClusX     = (TBranch*)EventTree->GetListOfBranches()->At(idx_ClusX);
         TBranch *b_ClusY     = (TBranch*)EventTree->GetListOfBranches()->At(idx_ClusY);
